@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intrusion Detection Prediction</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-top: 20px;
+        }
+        .card {
+            background-color: #fff;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+            transition: 0.3s;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 600px;
+        }
+        p {
+            text-align: center;
+            color: #666;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 20px auto;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: vertical;
+        }
+        button {
+            display: block;
+            margin: 0 auto;
+            padding: 10px 20px;
+            background-color: #4caf50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #predictionResult {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #4caf50;
+        }
+        #predictionResult.error {
+            color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <!-- HTML content -->
+    <h1>Intrusion Detection Prediction</h1>
+    <div class="card">
+        <p>Paste the JSON data below:</p>
+        <textarea id="jsonInput" rows="10" cols="50" placeholder="Enter data here..."></textarea><br>
+        <button onclick="predict()">Predict</button>
+        <p id="predictionResult"></p>
+    </div>
+
+    <script>
+        function predict() {
+            var jsonData = document.getElementById('jsonInput').value;
+            $.ajax({
+                type: 'POST',
+                url: '/predict',
+                contentType: 'application/json',
+                data: jsonData,
+                success: function(response) {
+                    console.log(response); // Console log the response
+                    var predictionResult = response.prediction;
+                    var predictionMessage, predictionColor;
+    
+                    if (predictionResult == 1) {
+                        predictionMessage = 'Safe';
+                        predictionColor = 'green';
+                    } else {
+                        predictionMessage = 'Danger';
+                        predictionColor = 'red';
+                    }
+    
+                    $('#predictionResult').removeClass('error').html('<div class="card" style="color: ' + predictionColor + ';">' +
+                        '<p><strong>Prediction:</strong> ' + predictionMessage + '</p>' +
+                        '</div>');
+                },
+                error: function(error) {
+                    console.error(error); // Console log the error
+                    $('#predictionResult').addClass('error').html('<div class="card">' +
+                        '<p><strong>Error:</strong> ' + error.responseJSON.error + '</p>' +
+                        '</div>');
+                }
+            });
+        }
+    </script>
+    
+    <script>
+        function prepareDataAndPredict(data) {
+            var data_list = data.split(',');
+            var protocol_type_mapping = {'icmp': 0, 'tcp': 1, 'udp': 2};
+            var service_mapping = {'IRC': 0, 'X11': 1, 'Z39_50': 2, 'auth': 3, 'bgp': 4, 'courier': 5, 'csnet_ns': 6, 'ctf': 7, 'daytime': 8, 'discard': 9, 'domain': 10, 'domain_u': 11, 'echo': 12, 'eco_i': 13, 'ecr_i': 14, 'efs': 15, 'exec': 16, 'finger': 17, 'ftp': 18, 'ftp_data': 19, 'gopher': 20, 'hostnames': 21, 'http': 22, 'http_443': 23, 'http_8001': 24, 'imap4': 25, 'iso_tsap': 26, 'klogin': 27, 'kshell': 28, 'ldap': 29, 'link': 30, 'login': 31, 'mtp': 32, 'name': 33, 'netbios_dgm': 34, 'netbios_ns': 35, 'netbios_ssn': 36, 'netstat': 37, 'nnsp': 38, 'nntp': 39, 'ntp_u': 40, 'other': 41, 'pm_dump': 42, 'pop_2': 43, 'pop_3': 44, 'printer': 45, 'private': 46, 'red_i': 47, 'remote_job': 48, 'rje': 49, 'shell': 50, 'smtp': 51, 'sql_net': 52, 'ssh': 53, 'sunrpc': 54, 'supdup': 55, 'systat': 56, 'telnet': 57, 'tim_i': 58, 'time': 59, 'urh_i': 60, 'urp_i': 61, 'uucp': 62, 'uucp_path': 63, 'vmnet': 64, 'whois': 65};
+            var flag_mapping = {'OTH': 0, 'REJ': 1, 'RSTO': 2, 'RSTOS0': 3, 'RSTR': 4, 'S0': 5, 'S1': 6, 'S2': 7, 'S3': 8, 'SF': 9, 'SH': 10};
+    
+            var protocol_type = protocol_type_mapping[data_list[1]];
+            var service = service_mapping[data_list[2]];
+            var flag = flag_mapping[data_list[3]];
+    
+            var json_data = {
+                'duration': parseFloat(data_list[0]),
+                'protocol_type': protocol_type,
+                'service': service,
+                'flag': flag,
+                'src_bytes': parseInt(data_list[4]),
+                'dst_bytes': parseInt(data_list[5]),
+                'land': parseInt(data_list[6]),
+                'wrong_fragment': parseInt(data_list[7]),
+                'urgent': parseInt(data_list[8]),
+                'hot': parseInt(data_list[9]),
+                'srv_count': parseInt(data_list[10]),
+                'serror_rate': parseFloat(data_list[11]),
+                'srv_serror_rate': parseFloat(data_list[12]),
+                'rerror_rate': parseFloat(data_list[13]),
+                'srv_rerror_rate': parseFloat(data_list[14]),
+                'same_srv_rate': parseFloat(data_list[15]),
+                'diff_srv_rate': parseFloat(data_list[16]),
+                'srv_diff_host_rate': parseFloat(data_list[17]),
+                'dst_host_count': parseInt(data_list[18]),
+                'dst_host_srv_count': parseInt(data_list[19]),
+                'dst_host_same_srv_rate': parseFloat(data_list[20]),
+                'dst_host_diff_srv_rate': parseFloat(data_list[21]),
+                'dst_host_same_src_port_rate': parseFloat(data_list[22]),
+                'dst_host_srv_diff_host_rate': parseFloat(data_list[23]),
+                'dst_host_serror_rate': parseFloat(data_list[24]),
+                'dst_host_srv_serror_rate': parseFloat(data_list[25]),
+                'dst_host_rerror_rate': parseFloat(data_list[26]),
+                'dst_host_srv_rerror_rate': parseFloat(data_list[27])
+            };
+    
+            var json_output = JSON.stringify(json_data);
+            console.log(json_output); // Output the JSON data
+            
+            $.ajax({
+                type: 'POST',
+                url: '/predict',
+                contentType: 'application/json',
+                data: json_output,
+                success: function(response) {
+                    console.log(response); // Console log the response
+                    var predictionResult = response.prediction;
+                    var predictionMessage, predictionColor;
+    
+                    if (predictionResult == 1) {
+                        predictionMessage = 'Safe';
+                        predictionColor = 'green';
+                    } else {
+                        predictionMessage = 'Danger';
+                        predictionColor = 'red';
+                    }
+    
+                    $('#predictionResult').removeClass('error').html('<div class="card" style="color: ' + predictionColor + ';">' +
+                        '<p><strong>Prediction:</strong> ' + predictionMessage + '</p>' +
+                        '</div>');
+                },
+                error: function(error) {
+                    console.error(error); // Console log the error
+                    $('#predictionResult').addClass('error').html('<div class="card">' +
+                        '<p><strong>Error:</strong> ' + error.responseJSON.error + '</p>' +
+                        '</div>');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
